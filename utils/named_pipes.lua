@@ -15,6 +15,7 @@ local uv = vim.loop
 ---@field default? string
 
 ---@param opts server_opts
+---@return uv_pipe_t
 function M.create_server(opts)
 	---@type formats
 	local format = opts.format or "string"
@@ -56,7 +57,7 @@ function M.create_server(opts)
 
 				local success, err = pcall(opts.callback, client, chunk)
 				if not success then
-					client:write(opts.default or ("Internal server error: " .. err .. "\n"))
+					client:write(opts.default or debug.traceback("Internal server error: " .. err))
 				end
 			else
 				client:shutdown()
@@ -68,21 +69,29 @@ function M.create_server(opts)
 	if opts.prerun then
 		opts.prerun()
 	end
+
+	return server
 end
 
 ---@class client_opts
 ---@field pipe_name string
 ---@field callback callback
 ---@field query string | fun()
+---@field timeout? number
 ---@field format? formats
 ---@field default? string
 
 ---@param opts client_opts
+---@return uv_pipe_t
 function M.create_client(opts)
 	---@type formats
 	local format = opts.format or "string"
+	local timeout = opts.timeout or 1000
 
-	function custom_assert(val, err, err_code)
+	---@param val any
+	---@param err? string
+	---@param err_code? string
+	local function custom_assert(val, err, err_code)
 		if val then
 			return val
 		end
@@ -91,10 +100,10 @@ function M.create_client(opts)
 			os.exit(0)
 		end
 		if err then
-			io.write(err_code and (err .. err_code .. "\n") or (err .. "\n"))
+			io.write(debug.traceback(err_code and (err .. err_code) or err))
 			os.exit(1)
 		end
-		io.write("Assertion failed!\n")
+		io.write(debug.traceback("Assertion failed!"))
 		os.exit(1)
 	end
 
@@ -125,7 +134,7 @@ function M.create_client(opts)
 				end
 
 				local success, err = pcall(opts.callback, client, chunk)
-				custom_assert(success, "Client error: ", err)
+				custom_assert(success, "Client error: ", err --[[@as string]])
 
 				client:shutdown()
 				client:close()
@@ -142,6 +151,19 @@ function M.create_client(opts)
 			opts.query()
 		end
 	end)
+
+	---@type uv_timer_t
+	local timer = assert(uv.new_timer(), "Failed to create timer")
+	timer:start(timeout, 0, function()
+		timer:stop()
+		timer:close()
+		client:shutdown()
+		client:close()
+		io.write("Server error: Timed out\n")
+		os.exit(1)
+	end)
+
+	return client
 end
 
 return M
