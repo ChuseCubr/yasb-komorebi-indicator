@@ -49,7 +49,9 @@ end
 ---@class settings
 ---@field params params
 
----@type fun(argv: string[], settings: settings): settings
+---@param argv string[]
+---@param settings settings
+---@return settings | server_settings | client_settings
 function M.parse_settings(argv, settings)
 	local args = M.parse_args(argv, settings.params)
 	for k, arg in pairs(args) do

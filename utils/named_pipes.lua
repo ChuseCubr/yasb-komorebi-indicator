@@ -3,7 +3,7 @@ local uv = vim.loop
 
 ---@alias callback fun(client: uv_pipe_t, chunk: string): boolean | nil
 
----@alias formats
+---@alias format
 ---| "string"
 ---| "json"
 
@@ -11,13 +11,13 @@ local uv = vim.loop
 ---@field pipe_name string
 ---@field callback callback
 ---@field prerun? fun()
----@field format? formats
+---@field format? format
 ---@field default? string
 
 ---@param opts server_opts
 ---@return uv_pipe_t
 function M.create_server(opts)
-	---@type formats
+	---@type format
 	local format = opts.format or "string"
 
 	---@type uv_pipe_t
@@ -26,7 +26,7 @@ function M.create_server(opts)
 	local _, err, _ = server:bind(pipe_path)
 	assert(not err, err)
 
-	---@type table<formats, callback>
+	---@type table<format, callback>
 	local verify_format = {
 		string = function(_, _)
 			return true
@@ -76,17 +76,20 @@ end
 ---@class client_opts
 ---@field pipe_name string
 ---@field callback callback
----@field query string | fun()
----@field timeout? number
----@field format? formats
+---@field request string | fun()
+---@field timeout? number | boolean
+---@field format? format
 ---@field default? string
 
 ---@param opts client_opts
 ---@return uv_pipe_t
 function M.create_client(opts)
-	---@type formats
+	---@type format
 	local format = opts.format or "string"
 	local timeout = opts.timeout or 1000
+	if timeout == 0 then
+		timeout = false
+	end
 
 	---@param val any
 	---@param err? string
@@ -96,7 +99,7 @@ function M.create_client(opts)
 			return val
 		end
 		if opts.default then
-			io.write(opts.default .. "\n")
+			io.write(opts.default, "\n")
 			os.exit(0)
 		end
 		if err then
@@ -111,7 +114,7 @@ function M.create_client(opts)
 	local client = custom_assert(uv.new_pipe(false), "Failed to create client")
 	local pipe_path = "\\\\.\\pipe\\" .. opts.pipe_name
 
-	---@type table<formats, callback>
+	---@type table<format, callback>
 	local verify_format = {
 		string = function(_, _)
 			return true
@@ -145,23 +148,25 @@ function M.create_client(opts)
 			end
 		end)
 
-		if type(opts.query) == "string" then
-			client:write(opts.query --[[@as string]])
+		if type(opts.request) == "string" then
+			client:write(opts.request --[[@as string]])
 		else
-			opts.query()
+			opts.request()
 		end
 	end)
 
-	---@type uv_timer_t
-	local timer = assert(uv.new_timer(), "Failed to create timer")
-	timer:start(timeout, 0, function()
-		timer:stop()
-		timer:close()
-		client:shutdown()
-		client:close()
-		io.write("Server error: Timed out\n")
-		os.exit(1)
-	end)
+	if timeout then
+		---@type uv_timer_t
+		local timer = assert(uv.new_timer(), "Failed to create timer")
+		timer:start(timeout --[[@as number]], 0, function()
+			timer:stop()
+			timer:close()
+			client:shutdown()
+			client:close()
+			io.write("Server error: Timed out\n")
+			os.exit(1)
+		end)
+	end
 
 	return client
 end
