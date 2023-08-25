@@ -10,7 +10,6 @@ local uv = vim.loop
 ---@class server_opts
 ---@field pipe_name string
 ---@field callback callback
----@field prerun? fun()
 ---@field format? format
 ---@field default? string
 
@@ -66,10 +65,6 @@ function M.create_server(opts)
 		end)
 	end)
 
-	if opts.prerun then
-		opts.prerun()
-	end
-
 	return server
 end
 
@@ -87,9 +82,6 @@ function M.create_client(opts)
 	---@type format
 	local format = opts.format or "string"
 	local timeout = opts.timeout or 1000
-	if timeout == 0 then
-		timeout = false
-	end
 
 	---@param val any
 	---@param err? string
@@ -153,20 +145,20 @@ function M.create_client(opts)
 		else
 			opts.request()
 		end
-	end)
 
-	if timeout then
-		---@type uv_timer_t
-		local timer = assert(uv.new_timer(), "Failed to create timer")
-		timer:start(timeout --[[@as number]], 0, function()
-			timer:stop()
-			timer:close()
-			client:shutdown()
-			client:close()
-			io.write("Server error: Timed out\n")
-			os.exit(1)
-		end)
-	end
+		if timeout ~= 0 then
+			---@type uv_timer_t
+			local timer = assert(uv.new_timer(), "Failed to create timer")
+			timer:start(timeout --[[@as number]], 0, function()
+				timer:stop()
+				timer:close()
+				client:shutdown()
+				client:close()
+				io.write("Server error: Timed out\n")
+				os.exit(1)
+			end)
+		end
+	end)
 
 	return client
 end

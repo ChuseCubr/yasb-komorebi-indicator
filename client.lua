@@ -9,6 +9,7 @@ local uv = vim.loop
 ---@module "settings"
 local settings = require("settings").client
 
+settings.query = "get_status"
 settings.params = {
 	pipe_name = "string",
 	query = "string",
@@ -19,12 +20,16 @@ local parser = require("utils.parser")
 settings = parser.parse_settings(vim.v.argv, settings) --[[@as client_settings]]
 
 local named_pipes = require("utils.named_pipes")
+
 named_pipes.create_client({
 	pipe_name = settings.pipe_name,
+	request = settings.query,
+	timeout = settings.timeout,
+	default = settings.default,
+	format = "json",
 	callback = function(client, chunk)
 		io.write("Reply: " .. chunk)
 	end,
-	request = "test",
 })
 
 uv.run("default")

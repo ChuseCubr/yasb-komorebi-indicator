@@ -6,40 +6,66 @@ SCRIPT_PATH = vim.fs.normalize(vim.fn.fnamemodify(SCRIPT_PATH, ":h"))
 package.path = package.path .. ";" .. SCRIPT_PATH .. "/?.lua"
 
 local uv = vim.loop
+
 ---@module "settings"
 local settings = require("settings").server
+
+---@module "utils.parser"
+local parser = require("utils.parser")
+
+---@module "utils.named_pipes"
+local named_pipes = require("utils.named_pipes")
+
+---@module "utils.active_window"
+local active_window = require("utils.active_window")
 
 settings.params = {
 	input_pipe = "string",
 	output_pipe = "string",
 }
 
----@module "utils.parser"
-local parser = require("utils.parser")
 settings = parser.parse_settings(vim.v.argv, settings) --[[@as server_settings]]
-
----@alias status table<indicator, boolean>
 
 ---@class state
 ---@field notif string
+---@field parsed_notif table
 ---@field status status
+---@field data string
 
 ---@type state
 local state = {
 	notif = "",
+	parsed_notif = {},
 	status = {},
+	data = settings.default,
 }
 
-local named_pipes = require("utils.named_pipes")
+-- komorebi listener
 named_pipes.create_server({
-	pipe_name = settings.output_pipe,
-	callback = function(client, chunk)
-		io.write("Received request: ", chunk, "\n")
-		client:write("Server settings: " .. vim.json.encode(settings) .. "\n")
-	end,
-	prerun = function()
-		io.write("Listening at: ", settings.output_pipe, "\n")
+	pipe_name = settings.input_pipe,
+	callback = function(_, chunk)
+		state.notif = chunk
 	end,
 })
+
+-- request listener
+named_pipes.create_server({
+	pipe_name = settings.output_pipe,
+	callback = function(client, _)
+		client:write(state.data)
+	end,
+})
+
+-- actively update status instead of waiting for a request
+---@type uv_timer_t
+local timer = assert(uv.new_timer())
+timer:start(0, settings.interval, function()
+	state.parsed_notif = assert(vim.json.decode(state.notif))
+	state.status = active_window.get_status(state.parsed_notif.state)
+	state.data = assert(vim.json.encode(state.status))
+end)
+
+io.write("Listening at: ", settings.output_pipe, "\n")
+io.popen("komorebic subscribe " .. settings.input_pipe)
 
 uv.run("default")
