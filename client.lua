@@ -9,26 +9,34 @@ local uv = vim.loop
 ---@module "settings"
 local settings = require("settings").client
 
+---@module "utils.parser"
+local parser = require("utils.parser")
+
+---@module "utils.named_pipes"
+local named_pipes = require("utils.named_pipes")
+
+---@module "utils.commands"
+local commands = require("utils.commands")
+
 settings.query = "get_status"
+settings.command = "general_indicator"
 settings.params = {
 	pipe_name = "string",
 	query = "string",
+	command = "string",
 }
 
----@module "utils.parser"
-local parser = require("utils.parser")
 settings = parser.parse_settings(vim.v.argv, settings) --[[@as client_settings]]
-
-local named_pipes = require("utils.named_pipes")
 
 named_pipes.create_client({
 	pipe_name = settings.pipe_name,
 	request = settings.query,
 	timeout = settings.timeout,
-	default = settings.default,
+	default = vim.json.encode(settings.default),
 	format = "json",
-	callback = function(client, chunk)
-		io.write("Reply: " .. chunk)
+	callback = function(_, raw_status)
+		local status = assert(vim.json.decode(raw_status))
+		commands[settings.command](status, settings)
 	end,
 })
 

@@ -1,6 +1,6 @@
 local M = {}
 
-local komorebi_pipe = "komorebi_listener_test"
+local komorebi_pipe = "komorebi_listener"
 local yasb_pipe = "komorebi_window_indicator"
 local interval = 1000
 local timeout = 1000
@@ -21,8 +21,11 @@ local client_default = {
 	on_middle = "",
 }
 
----@alias status table<indicator, boolean>
+---@alias indicator "monocle" | "maximized" | "floating" | "stacked"
+---@type indicator[]
+local priority = { "monocle", "maximized", "floating", "stacked" }
 
+---@alias status table<indicator, boolean>
 ---@type status
 local server_default = {
 	monocle = false,
@@ -30,10 +33,6 @@ local server_default = {
 	floating = false,
 	stacked = false,
 }
-
----@alias indicator "monocle" | "maximized" | "floating" | "stacked"
----@type indicator[]
-local priority = { "monocle", "maximized", "floating", "stacked" }
 
 ---@alias indicators table<indicator, yasb_data>
 local indicators = {
@@ -70,14 +69,14 @@ local indicators = {
 ---@class server_settings: settings
 ---@field input_pipe string
 ---@field output_pipe string
----@field default? string
+---@field default? yasb_data
 ---@field interval? number
 
 ---@type server_settings
 M.server = {
 	input_pipe = komorebi_pipe,
 	output_pipe = yasb_pipe,
-	default = vim.json.encode(server_default),
+	default = server_default,
 	interval = interval,
 }
 
@@ -85,13 +84,13 @@ M.server = {
 ---@field pipe_name string
 ---@field priority indicator[]
 ---@field indicators table<indicator, yasb_data>
----@field default? string
+---@field default? yasb_data
 ---@field timeout? number
 
 ---@type client_settings
 M.client = {
 	pipe_name = yasb_pipe,
-	default = vim.json.encode(client_default),
+	default = client_default,
 	indicators = indicators,
 	priority = priority,
 	timeout = timeout,

@@ -27,24 +27,24 @@ settings.params = {
 settings = parser.parse_settings(vim.v.argv, settings) --[[@as server_settings]]
 
 ---@class state
----@field notif string
----@field parsed_notif table
+---@field raw_notif string
+---@field notif table
 ---@field status status
 ---@field data string
 
 ---@type state
 local state = {
-	notif = "",
-	parsed_notif = {},
+	raw_notif = "",
+	notif = {},
 	status = {},
-	data = settings.default,
+	data = assert(vim.json.encode(settings.default)),
 }
 
 -- komorebi listener
 named_pipes.create_server({
 	pipe_name = settings.input_pipe,
 	callback = function(_, chunk)
-		state.notif = chunk
+		state.raw_notif = chunk
 	end,
 })
 
@@ -60,8 +60,8 @@ named_pipes.create_server({
 ---@type uv_timer_t
 local timer = assert(uv.new_timer())
 timer:start(0, settings.interval, function()
-	state.parsed_notif = assert(vim.json.decode(state.notif))
-	state.status = active_window.get_status(state.parsed_notif.state)
+	state.notif = assert(vim.json.decode(state.raw_notif))
+	state.status = active_window.get_status(state.notif.state)
 	state.data = assert(vim.json.encode(state.status))
 end)
 
