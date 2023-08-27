@@ -33,7 +33,7 @@ named_pipes.create_client({
 	pipe_name = settings.pipe_name,
 	request = settings.query,
 	timeout = settings.timeout,
-	-- default = vim.json.encode(settings.default),
+	default = vim.json.encode(settings.default),
 	format = "json",
 	callback = function(_, raw_status)
 		local status = assert(vim.json.decode(raw_status))

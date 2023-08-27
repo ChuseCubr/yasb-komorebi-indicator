@@ -51,6 +51,7 @@ named_pipes.create_server({
 -- request listener
 named_pipes.create_server({
 	pipe_name = settings.output_pipe,
+	default = settings.default,
 	callback = function(client, _)
 		client:write(state.data)
 	end,

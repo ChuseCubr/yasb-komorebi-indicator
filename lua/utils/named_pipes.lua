@@ -11,13 +11,14 @@ local uv = vim.loop
 ---@field pipe_name string
 ---@field callback callback
 ---@field format? format
----@field default? string
+---@field default? status
 
 ---@param opts server_opts
 ---@return uv_pipe_t
 function M.create_server(opts)
 	---@type format
 	local format = opts.format or "string"
+	local default = vim.json.encode(opts.default)
 
 	---@type uv_pipe_t
 	local server = assert(uv.new_pipe(false), "Failed to create server")
@@ -34,7 +35,7 @@ function M.create_server(opts)
 		json = function(client, chunk)
 			local success, _ = pcall(vim.json.decode, chunk)
 			if not success then
-				client:write(opts.default or "Invalid request: Not in JSON format\n")
+				client:write(default or "Invalid request: Not in JSON format\n")
 				return false
 			end
 			return true
@@ -56,7 +57,7 @@ function M.create_server(opts)
 
 				local success, err = pcall(opts.callback, client, chunk)
 				if not success then
-					client:write(opts.default or debug.traceback("Internal server error: " .. err))
+					client:write(default or debug.traceback("Internal server error: " .. err))
 				end
 			else
 				client:shutdown()
@@ -74,7 +75,7 @@ end
 ---@field request string | fun()
 ---@field timeout? number | boolean
 ---@field format? format
----@field default? string
+---@field default? yasb_data
 
 ---@param opts client_opts
 ---@return uv_pipe_t
@@ -82,6 +83,7 @@ function M.create_client(opts)
 	---@type format
 	local format = opts.format or "string"
 	local timeout = opts.timeout or 1000
+	local default = vim.json.encode(opts.default)
 
 	---@param val any
 	---@param err? string
@@ -90,8 +92,8 @@ function M.create_client(opts)
 		if val then
 			return val
 		end
-		if opts.default then
-			io.write(opts.default, "\n")
+		if default then
+			io.write(default, "\n")
 			os.exit(0)
 		end
 		if err then
