@@ -18,8 +18,9 @@ local named_pipes = require("utils.named_pipes")
 ---@module "utils.commands"
 local commands = require("utils.commands")
 
+---@type command
+settings.command = "status"
 settings.query = "get_status"
-settings.command = "general_indicator"
 settings.params = {
 	pipe_name = "string",
 	query = "string",
@@ -32,7 +33,7 @@ named_pipes.create_client({
 	pipe_name = settings.pipe_name,
 	request = settings.query,
 	timeout = settings.timeout,
-	default = vim.json.encode(settings.default),
+	-- default = vim.json.encode(settings.default),
 	format = "json",
 	callback = function(_, raw_status)
 		local status = assert(vim.json.decode(raw_status))

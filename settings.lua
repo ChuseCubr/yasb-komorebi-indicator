@@ -34,35 +34,71 @@ local server_default = {
 	stacked = false,
 }
 
----@alias indicators table<indicator, yasb_data>
+---@alias indicators table<indicator, table<"on" | "off", yasb_data>>
 local indicators = {
 	floating = {
-		label = "",
-		label_alt = "",
-		on_left = "komorebic toggle-float",
-		on_right = "",
-		on_middle = "",
+		on = {
+			label = "[]",
+			label_alt = "[]",
+			on_left = "komorebic toggle-float",
+			on_right = "",
+			on_middle = "",
+		},
+		off = {
+			label = "  ",
+			label_alt = "  ",
+			on_left = "komorebic toggle-float",
+			on_right = "",
+			on_middle = "",
+		},
 	},
 	stacked = {
-		label = "󱟱",
-		label_alt = "󱟱",
-		on_left = "komorebic cycle-stack next",
-		on_right = "komorebic cycle-stack previous",
-		on_middle = "komorebic unstack",
+		on = {
+			label = "[󱟱]",
+			label_alt = "[󱟱]",
+			on_left = "komorebic cycle-stack next",
+			on_right = "komorebic cycle-stack previous",
+			on_middle = "komorebic unstack",
+		},
+		off = {
+			label = " 󱟱 ",
+			label_alt = " 󱟱 ",
+			on_left = "komorebic stack left",
+			on_right = "",
+			on_middle = "",
+		},
 	},
 	monocle = {
-		label = "󰘖",
-		label_alt = "󰘖",
-		on_left = "komorebic toggle-monocle",
-		on_right = "",
-		on_middle = "",
+		on = {
+			label = "[󰘖]",
+			label_alt = "[󰘖]",
+			on_left = "komorebic toggle-monocle",
+			on_right = "",
+			on_middle = "",
+		},
+		off = {
+			label = " 󰘖 ",
+			label_alt = " 󰘖 ",
+			on_left = "komorebic toggle-monocle",
+			on_right = "",
+			on_middle = "",
+		},
 	},
 	maximized = {
-		label = "󰁌",
-		label_alt = "󰁌",
-		on_left = "komorebic toggle-maximize",
-		on_right = "",
-		on_middle = "",
+		on = {
+			label = "[󰁌]",
+			label_alt = "[󰁌]",
+			on_left = "komorebic toggle-maximize",
+			on_right = "",
+			on_middle = "",
+		},
+		off = {
+			label = " 󰁌 ",
+			label_alt = " 󰁌 ",
+			on_left = "komorebic toggle-maximize",
+			on_right = "",
+			on_middle = "",
+		},
 	},
 }
 
@@ -83,7 +119,7 @@ M.server = {
 ---@class client_settings: settings
 ---@field pipe_name string
 ---@field priority indicator[]
----@field indicators table<indicator, yasb_data>
+---@field indicators indicators
 ---@field default? yasb_data
 ---@field timeout? number
 
